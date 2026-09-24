@@ -1,3 +1,7 @@
+import random
+
+
+
 def load_data(filepath):
     '''
     Loads and parses a JSSP benchmark file into (num_jobs, num_machines, jobs).
@@ -24,5 +28,62 @@ def load_data(filepath):
 
     return [num_warehouse, num_customers, warehouse_data, customer_data]
 
+def create_solution(num_warehouse,num_customers):
+    # index=customer; entry=warehouse
+    solution = []
 
-load_data('./data/cap41.txt')
+    for _ in range(num_customers):
+        solution.append(random.randint(0, num_warehouse-1))
+
+    return solution 
+
+def feasibility_repair(solution, num_warehouse, warehouse_data, customer_data):
+    solution = solution.copy()
+    unassigned_customers = []
+    facility_usage = [0] * num_warehouse
+
+    for customer in range(len(solution)):
+        warehouse = solution[customer]
+        demand = customer_data[customer][0]
+        if facility_usage[warehouse] + demand <= warehouse_data[warehouse][0]:
+            facility_usage[warehouse] += demand
+        else:
+            unassigned_customers.append(customer)
+
+    for customer in unassigned_customers:
+        demand = customer_data[customer][0]
+        costs = customer_data[customer][1]
+
+        open_facilities_with_space = [
+            f for f in range(num_warehouse)
+            if facility_usage[f] > 0 and facility_usage[f] + demand <= warehouse_data[f][0]
+        ]
+
+        if open_facilities_with_space:
+            best_facility = min(open_facilities_with_space, key=lambda f: costs[f])
+        else:
+            closed_facilities_with_space = [
+                f for f in range(num_warehouse)
+                if facility_usage[f] == 0 and demand <= warehouse_data[f][0]
+            ]
+            if closed_facilities_with_space:
+                best_facility = min(closed_facilities_with_space, key=lambda f: warehouse_data[f][1] + costs[f])
+            else:
+                best_facility = max(range(num_warehouse), key=lambda f: warehouse_data[f][0] - facility_usage[f])
+
+        solution[customer] = best_facility
+        facility_usage[best_facility] += demand
+
+    return solution
+
+def main():
+    path = './data/cap61.txt'
+    num_warehouse, num_customers, warehouse_data, customer_data = load_data(path)
+    solution = create_solution(num_warehouse,num_customers)
+    solution_correct = feasibility_repair(solution,num_warehouse, warehouse_data, customer_data)
+    x = feasibility_repair(solution_correct,num_warehouse, warehouse_data, customer_data)
+    print()
+
+
+if __name__ == "__main__":
+    main()
