@@ -76,12 +76,36 @@ def feasibility_repair(solution, num_warehouse, warehouse_data, customer_data):
 
     return solution
 
+def crossover(solution1, solution2, num_warehouse, warehouse_data, customer_data):
+    solution1 = solution1.copy()
+    solution2 = solution2.copy()
+    child_solution1 = [None] * len(solution1)
+    child_solution2 = [None] * len(solution1)
+
+    for index in range(0,len(solution1)):
+        value_choice = random.choice([0, 1])
+        if value_choice == 1:
+            child_solution1[index] = solution1[index]
+            child_solution2[index] = solution2[index]
+        else:
+            child_solution1[index] = solution2[index]
+            child_solution2[index] = solution1[index]
+
+    child_solution1 = feasibility_repair(child_solution1, num_warehouse, warehouse_data, customer_data)
+    child_solution2 = feasibility_repair(child_solution2, num_warehouse, warehouse_data, customer_data)
+
+    return child_solution1,child_solution2
+
+
+
 def main():
     path = './data/cap61.txt'
     num_warehouse, num_customers, warehouse_data, customer_data = load_data(path)
-    solution = create_solution(num_warehouse,num_customers)
-    solution_correct = feasibility_repair(solution,num_warehouse, warehouse_data, customer_data)
-    x = feasibility_repair(solution_correct,num_warehouse, warehouse_data, customer_data)
+    solution1 = create_solution(num_warehouse,num_customers)
+    solution_correct1 = feasibility_repair(solution1,num_warehouse, warehouse_data, customer_data)
+    solution2 = create_solution(num_warehouse,num_customers)
+    solution_correct2 = feasibility_repair(solution1,num_warehouse, warehouse_data, customer_data)
+    child_solution1, child_solution2 = crossover(solution1,solution2,num_warehouse,warehouse_data,customer_data)
     print()
 
 
