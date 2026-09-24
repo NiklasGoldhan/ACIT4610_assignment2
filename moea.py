@@ -76,7 +76,7 @@ def feasibility_repair(solution, num_warehouse, warehouse_data, customer_data):
 
     return solution
 
-def crossover(solution1, solution2, num_warehouse, warehouse_data, customer_data):
+def crossover(solution1, solution2, num_warehouse, warehouse_data, customer_data, mutation_rate):
     solution1 = solution1.copy()
     solution2 = solution2.copy()
     child_solution1 = [None] * len(solution1)
@@ -94,18 +94,36 @@ def crossover(solution1, solution2, num_warehouse, warehouse_data, customer_data
     child_solution1 = feasibility_repair(child_solution1, num_warehouse, warehouse_data, customer_data)
     child_solution2 = feasibility_repair(child_solution2, num_warehouse, warehouse_data, customer_data)
 
+
     return child_solution1,child_solution2
+
+
+def mutation(solution, num_warehouse, warehouse_data, customer_data, mutation_rate):
+    solution = solution.copy()
+    for warehouse_index in range(0,len(solution)):
+        mutation_random = random.random()
+        if mutation_random <= mutation_rate:
+            solution[warehouse_index] = random.randint(0,num_warehouse-1)
+
+    solution = feasibility_repair(solution, num_warehouse, warehouse_data, customer_data)
+    return solution
+
+
 
 
 
 def main():
     path = './data/cap61.txt'
+    mutation_rate = 0.05
     num_warehouse, num_customers, warehouse_data, customer_data = load_data(path)
     solution1 = create_solution(num_warehouse,num_customers)
     solution_correct1 = feasibility_repair(solution1,num_warehouse, warehouse_data, customer_data)
     solution2 = create_solution(num_warehouse,num_customers)
     solution_correct2 = feasibility_repair(solution1,num_warehouse, warehouse_data, customer_data)
-    child_solution1, child_solution2 = crossover(solution1,solution2,num_warehouse,warehouse_data,customer_data)
+    child_solution1, child_solution2 = crossover(solution1,solution2,num_warehouse,warehouse_data,customer_data, mutation_rate)
+    child_solution1_m = mutation(child_solution1, num_warehouse, warehouse_data, customer_data, mutation_rate)
+    child_solution2_m = mutation(child_solution2, num_warehouse, warehouse_data, customer_data, mutation_rate)
+    
     print()
 
 
