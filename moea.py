@@ -108,7 +108,32 @@ def mutation(solution, num_warehouse, warehouse_data, customer_data, mutation_ra
     solution = feasibility_repair(solution, num_warehouse, warehouse_data, customer_data)
     return solution
 
+def calculate_opening_cost(solution, warehouse_data):
+    open_facilities = []
+    total_opening_cost = 0
+    for warehouse in solution:
+        if warehouse not in open_facilities:
+            open_facilities.append(warehouse)
 
+    for facility in open_facilities:
+        total_opening_cost += warehouse_data[facility][1]
+
+    return total_opening_cost
+
+def calculate_customer_cost(solution, customer_data):
+    total_customer_cost = 0
+    for customer in range(0,len(solution)):
+        customer_cost_list = customer_data[customer][1]
+        total_customer_cost += customer_cost_list[solution[customer]]
+
+    return total_customer_cost
+
+
+def evaluate_solution(solution, warehouse_data, customer_data):
+    opening_cost = round(calculate_opening_cost(solution, warehouse_data), 5)
+    customer_cost = round(calculate_customer_cost(solution, customer_data), 5)
+
+    return opening_cost, customer_cost
 
 
 
@@ -123,6 +148,7 @@ def main():
     child_solution1, child_solution2 = crossover(solution1,solution2,num_warehouse,warehouse_data,customer_data, mutation_rate)
     child_solution1_m = mutation(child_solution1, num_warehouse, warehouse_data, customer_data, mutation_rate)
     child_solution2_m = mutation(child_solution2, num_warehouse, warehouse_data, customer_data, mutation_rate)
+    opening_cost, customer_cost = evaluate_solution(child_solution1_m, warehouse_data, customer_data)
     
     print()
 
