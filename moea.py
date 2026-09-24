@@ -136,20 +136,26 @@ def evaluate_solution(solution, warehouse_data, customer_data):
     return opening_cost, customer_cost
 
 
+# returns population list with [pop, warehouse opening cost, customer cost]
+def create_population(pop_size, num_warehouse, num_customers, warehouse_data, customer_data):
+    population = [create_solution(num_warehouse, num_customers) for _ in range(0, pop_size)]
+
+    population_cost_list = []
+    for solution in population:
+        solution = feasibility_repair(solution,num_warehouse,warehouse_data,customer_data)
+        opening_cost, customer_cost = evaluate_solution(solution, warehouse_data, customer_data)
+        population_cost_list.append([solution,opening_cost,customer_cost])
+
+    return population_cost_list
+
+    
 
 def main():
     path = './data/cap61.txt'
     mutation_rate = 0.05
+    pop_size = 200
     num_warehouse, num_customers, warehouse_data, customer_data = load_data(path)
-    solution1 = create_solution(num_warehouse,num_customers)
-    solution_correct1 = feasibility_repair(solution1,num_warehouse, warehouse_data, customer_data)
-    solution2 = create_solution(num_warehouse,num_customers)
-    solution_correct2 = feasibility_repair(solution1,num_warehouse, warehouse_data, customer_data)
-    child_solution1, child_solution2 = crossover(solution1,solution2,num_warehouse,warehouse_data,customer_data)
-    child_solution1_m = mutation(child_solution1, num_warehouse, warehouse_data, customer_data, mutation_rate)
-    child_solution2_m = mutation(child_solution2, num_warehouse, warehouse_data, customer_data, mutation_rate)
-    opening_cost, customer_cost = evaluate_solution(child_solution1_m, warehouse_data, customer_data)
-    
+    population = create_population(pop_size, num_warehouse, num_customers, warehouse_data, customer_data)
     print()
 
 
