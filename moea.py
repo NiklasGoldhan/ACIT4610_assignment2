@@ -76,9 +76,7 @@ def feasibility_repair(solution, num_warehouse, warehouse_data, customer_data):
 
     return solution
 
-def crossover(solution1, solution2, num_warehouse, warehouse_data, customer_data, mutation_rate):
-    solution1 = solution1.copy()
-    solution2 = solution2.copy()
+def crossover(solution1, solution2, num_warehouse, warehouse_data, customer_data):
     child_solution1 = [None] * len(solution1)
     child_solution2 = [None] * len(solution1)
 
@@ -91,8 +89,9 @@ def crossover(solution1, solution2, num_warehouse, warehouse_data, customer_data
             child_solution1[index] = solution2[index]
             child_solution2[index] = solution1[index]
 
-    child_solution1 = feasibility_repair(child_solution1, num_warehouse, warehouse_data, customer_data)
-    child_solution2 = feasibility_repair(child_solution2, num_warehouse, warehouse_data, customer_data)
+    # i think we can remove this if we alsway run mutation wich we should with how i implemented mutation
+    # child_solution1 = feasibility_repair(child_solution1, num_warehouse, warehouse_data, customer_data)
+    # child_solution2 = feasibility_repair(child_solution2, num_warehouse, warehouse_data, customer_data)
 
 
     return child_solution1,child_solution2
@@ -100,28 +99,29 @@ def crossover(solution1, solution2, num_warehouse, warehouse_data, customer_data
 
 def mutation(solution, num_warehouse, warehouse_data, customer_data, mutation_rate):
     solution = solution.copy()
-    for warehouse_index in range(0,len(solution)):
+    for customer_index in range(0,len(solution)):
         mutation_random = random.random()
         if mutation_random <= mutation_rate:
-            solution[warehouse_index] = random.randint(0,num_warehouse-1)
+            new_warehouse = random.randint(0,num_warehouse-1)
+            if new_warehouse != solution[customer_index]:
+                solution[customer_index] = new_warehouse
+            else:
+                if new_warehouse < num_warehouse-1:
+                    new_warehouse += 1
+                    solution[customer_index] = new_warehouse
+                else:
+                    new_warehouse -= 1
+                    solution[customer_index] = new_warehouse
 
     solution = feasibility_repair(solution, num_warehouse, warehouse_data, customer_data)
     return solution
 
 def calculate_opening_cost(solution, warehouse_data):
-    open_facilities = []
-    total_opening_cost = 0
-    for warehouse in solution:
-        if warehouse not in open_facilities:
-            open_facilities.append(warehouse)
-
-    for facility in open_facilities:
-        total_opening_cost += warehouse_data[facility][1]
-
-    return total_opening_cost
+    open_facilities = set(solution)
+    return sum(warehouse_data[f][1] for f in open_facilities)
 
 def calculate_customer_cost(solution, customer_data):
-    total_customer_cost = 0
+    total_customer_cost = 0.0
     for customer in range(0,len(solution)):
         customer_cost_list = customer_data[customer][1]
         total_customer_cost += customer_cost_list[solution[customer]]
@@ -145,7 +145,7 @@ def main():
     solution_correct1 = feasibility_repair(solution1,num_warehouse, warehouse_data, customer_data)
     solution2 = create_solution(num_warehouse,num_customers)
     solution_correct2 = feasibility_repair(solution1,num_warehouse, warehouse_data, customer_data)
-    child_solution1, child_solution2 = crossover(solution1,solution2,num_warehouse,warehouse_data,customer_data, mutation_rate)
+    child_solution1, child_solution2 = crossover(solution1,solution2,num_warehouse,warehouse_data,customer_data)
     child_solution1_m = mutation(child_solution1, num_warehouse, warehouse_data, customer_data, mutation_rate)
     child_solution2_m = mutation(child_solution2, num_warehouse, warehouse_data, customer_data, mutation_rate)
     opening_cost, customer_cost = evaluate_solution(child_solution1_m, warehouse_data, customer_data)
