@@ -2,7 +2,7 @@ import random
 
 
 class BaseAlgorithm:
-    def __init__(self, filepath, mutation_rate, pop_size):
+    def __init__(self, filepath, mutation_rate, crossover_rate, pop_size):
         with open(filepath, "r") as file:
             words = iter(file.read().split())
 
@@ -25,6 +25,8 @@ class BaseAlgorithm:
         self.warehouse_data = warehouse_data
         self.customer_data = customer_data
         self.mutation_rate = mutation_rate
+        self.crossover_rate = crossover_rate
+        self.tournament_size = 2
         self.pop_size = pop_size
 
     def create_solution(self):
@@ -97,7 +99,7 @@ class BaseAlgorithm:
                 child_solution1[index] = solution2[index]
                 child_solution2[index] = solution1[index]
 
-        # i think we can remove this if we alsway run mutation wich we should with how i implemented mutation
+        # i think we can remove this if we always run mutation wich we should with how i implemented mutation
         # child_solution1 = feasibility_repair(child_solution1, num_warehouse, warehouse_data, customer_data)
         # child_solution2 = feasibility_repair(child_solution2, num_warehouse, warehouse_data, customer_data)
 
@@ -152,10 +154,52 @@ class BaseAlgorithm:
 
         return population_cost_list
 
+    def turnament_selection(self, population):
+        candidate_list = random.sample(
+            population,
+            self.tournament_size
+        )
+
+        return min(candidate_list, key=lambda item: item[1])
+
+
+    def create_children(self, parent_population):
+        children_cost_list = []
+        children = []
+        while len(children) < self.pop_size:
+            parent1 = self.turnament_selection(parent_population)
+            parent2 = self.turnament_selection(parent_population)
+
+            parent_solution1 = parent1[0]
+            parent_solution2 = parent2[0]
+
+            if random.random() <= self.crossover_rate:
+                child1, child2 = self.crossover(parent_solution1, parent_solution2)
+            else:
+                child1 = parent_solution1.copy()
+                child2 = parent_solution2.copy()
+
+            if random.random() < self.mutation_rate:
+                child1 = self.mutation(child1)
+            if random.random() < self.mutation_rate:
+                child2 = self.mutation(child2)
+
+            children.append(child1)
+            if len(children) < self.pop_size:
+                    children.append(child2)
+
+        for child in children:
+            opening_cost, customer_cost = self.evaluate_solution(child)
+            children_cost_list.append([child, opening_cost, customer_cost])
+            
+        return children_cost_list
+    
 
 def main():
     path = "./data/cap61.txt"
-    instance = BaseAlgorithm(path, 0.05, 200)
+    instance = BaseAlgorithm(path, 0.05, 0.7 , 200)
+    population = instance.create_population()
+    children = instance.create_children(population,)
     print()
 
 
