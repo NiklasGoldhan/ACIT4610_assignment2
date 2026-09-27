@@ -199,7 +199,7 @@ def main():
     path = "./data/cap61.txt"
     instance = BaseAlgorithm(path, 0.05, 0.7 , 200)
     population = instance.create_population()
-    children = instance.create_children(population,)
+    children = instance.create_children(population)
     print()
 
 
