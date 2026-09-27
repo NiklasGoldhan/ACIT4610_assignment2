@@ -2,7 +2,8 @@ import random
 
 
 class BaseAlgorithm:
-    def __init__(self, filepath, mutation_rate, crossover_rate, pop_size):
+    def __init__(self, filepath, generations, mutation_rate, crossover_rate, pop_size):
+        # maybe factor this out to an instance class later so we can reuse algo on different instances
         with open(filepath, "r") as file:
             words = iter(file.read().split())
 
@@ -24,6 +25,7 @@ class BaseAlgorithm:
         self.customer_count = customer_count
         self.warehouse_data = warehouse_data
         self.customer_data = customer_data
+        self.generations = generations
         self.mutation_rate = mutation_rate
         self.crossover_rate = crossover_rate
         self.tournament_size = 2
@@ -206,7 +208,7 @@ class BaseAlgorithm:
 
 def main():
     path = "./data/cap61.txt"
-    instance = BaseAlgorithm(path, 0.05, 0.7 , 200)
+    instance = BaseAlgorithm(path, 5000, 0.05, 0.7 , 200)
     population = instance.create_population()
     children = instance.create_children(population)
     print()

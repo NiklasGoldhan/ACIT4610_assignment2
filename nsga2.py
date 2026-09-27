@@ -2,10 +2,6 @@ from base import BaseAlgorithm
 
 
 class NSGA2(BaseAlgorithm):
-    def __init__(self, filepath, mutation_rate, crossover_rate, pop_size):
-        super().__init__(filepath, mutation_rate, crossover_rate, pop_size)
-
-
     def calculate_crowding_distance(self, front, population):
         distances = {index: 0.0 for index in front}
         if len(front) <= 2:
@@ -90,9 +86,14 @@ class NSGA2(BaseAlgorithm):
         return new_population
 
 
+    # TODO: perform tournament selection based on rankings
+    def tournament_selection(self, population):
+        return super().tournament_selection(population)
+
+
 def main():
     path = "./data/cap61.txt"
-    instance = NSGA2(path,0.05,0.7,200)
+    instance = NSGA2(path,5000,0.05,0.7,200)
     parents = instance.create_population()
     children = instance.create_children(parents)
     new_population = instance.determine_new_population(parents,children)
