@@ -17,7 +17,7 @@ class BaseAlgorithm:
             for _ in range(customer_count):
                 customer_demand = int(next(words))
                 customer_cost = []
-                for index in range(warehouse_count):
+                for _ in range(warehouse_count):
                     customer_cost.append(float(next(words)))
                 customer_data.append((customer_demand, customer_cost))
         self.warehouse_count = warehouse_count
@@ -29,6 +29,7 @@ class BaseAlgorithm:
         self.tournament_size = 2
         self.pop_size = pop_size
 
+
     def create_solution(self):
         # index=customer; entry=warehouse
         solution = []
@@ -37,6 +38,7 @@ class BaseAlgorithm:
             solution.append(random.randint(0, self.warehouse_count - 1))
 
         return solution
+
 
     def feasibility_repair(self, solution):
         solution = solution.copy()
@@ -86,6 +88,7 @@ class BaseAlgorithm:
 
         return solution
 
+
     def crossover(self, solution1, solution2):
         child_solution1 = [None] * len(solution1)
         child_solution2 = [None] * len(solution1)
@@ -104,6 +107,7 @@ class BaseAlgorithm:
         # child_solution2 = feasibility_repair(child_solution2, num_warehouse, warehouse_data, customer_data)
 
         return child_solution1, child_solution2
+
 
     def mutation(self, solution):
         solution = solution.copy()
@@ -124,9 +128,11 @@ class BaseAlgorithm:
         solution = self.feasibility_repair(solution)
         return solution
 
+
     def calculate_opening_cost(self, solution):
         open_facilities = set(solution)
         return sum(self.warehouse_data[f][1] for f in open_facilities)
+
 
     def calculate_customer_cost(self, solution):
         total_customer_cost = 0.0
@@ -136,11 +142,13 @@ class BaseAlgorithm:
 
         return total_customer_cost
 
+
     def evaluate_solution(self, solution):
         opening_cost = round(self.calculate_opening_cost(solution), 5)
         customer_cost = round(self.calculate_customer_cost(solution), 5)
 
         return opening_cost, customer_cost
+
 
     # returns population list with [pop, warehouse opening cost, customer cost]
     def create_population(self):
@@ -154,7 +162,8 @@ class BaseAlgorithm:
 
         return population_cost_list
 
-    def turnament_selection(self, population):
+
+    def tournament_selection(self, population):
         candidate_list = random.sample(
             population,
             self.tournament_size
@@ -167,8 +176,8 @@ class BaseAlgorithm:
         children_cost_list = []
         children = []
         while len(children) < self.pop_size:
-            parent1 = self.turnament_selection(parent_population)
-            parent2 = self.turnament_selection(parent_population)
+            parent1 = self.tournament_selection(parent_population)
+            parent2 = self.tournament_selection(parent_population)
 
             parent_solution1 = parent1[0]
             parent_solution2 = parent2[0]
@@ -193,7 +202,7 @@ class BaseAlgorithm:
             children_cost_list.append([child, opening_cost, customer_cost])
             
         return children_cost_list
-    
+
 
 def main():
     path = "./data/cap61.txt"
