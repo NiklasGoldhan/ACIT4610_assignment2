@@ -1,4 +1,5 @@
 from base import BaseAlgorithm
+import random
 
 
 class NSGA2(BaseAlgorithm):
@@ -82,32 +83,38 @@ class NSGA2(BaseAlgorithm):
                     new_population.append(population[index])
                 break
             else:
-                distances = self.calculate_crowding_distance(front,population)
+                distances = self.calculate_crowding_distance(front, population)
                 for solution_index in front:
                     population[solution_index].append(front_index)
                     population[solution_index].append(distances.get(solution_index))
                     new_population.append(population[solution_index])
                     if len(new_population) == self.pop_size:
                         break
-            front_index +=1
-            
+            front_index += 1
+
         return new_population
 
     def tournament_selection(self, population):
-        return super().tournament_selection(population)
-
-    
+        candidate_list = random.sample(population, 2)
+        if candidate_list[0][3] < candidate_list[1][3]:
+            return candidate_list[0]
+        elif candidate_list[0][3] > candidate_list[1][3]:
+            return candidate_list[1]
+        elif candidate_list[0][3] == candidate_list[1][3]:
+            if candidate_list[0][4] < candidate_list[1][4]:
+                return candidate_list[0]
+            elif candidate_list[0][4] > candidate_list[1][4]:
+                return candidate_list[1]
+            else:
+                return candidate_list[random.randint(0, 1)]
 
 
 def main():
     path = "./data/cap61.txt"
     instance = NSGA2(path, 5000, 0.05, 0.7, 200)
     parents = instance.create_population()
-    children = instance.create_children(parents)
-    new_population = instance.determine_new_population(parents, children)
     pass
 
 
 if __name__ == "__main__":
     main()
-
