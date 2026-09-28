@@ -65,10 +65,9 @@ class NSGA2(BaseAlgorithm):
 
     def determine_new_population(self, parent_population, child_population):
         new_population = []
-
         population = parent_population + child_population
-
         fronts = self.non_dominated_sort(population)
+        front_index = 0
 
         for front in fronts:
             if len(front) + len(new_population) > self.pop_size:
@@ -78,18 +77,26 @@ class NSGA2(BaseAlgorithm):
                 )
                 remaining = self.pop_size - len(new_population)
                 for index in sorted_front[:remaining]:
+                    population[index].append(front_index)
+                    population[index].append(distances.get(index))
                     new_population.append(population[index])
                 break
             else:
+                distances = self.calculate_crowding_distance(front,population)
                 for solution_index in front:
+                    population[solution_index].append(front_index)
+                    population[solution_index].append(distances.get(solution_index))
                     new_population.append(population[solution_index])
                     if len(new_population) == self.pop_size:
                         break
-
+            front_index +=1
+            
         return new_population
 
     def tournament_selection(self, population):
         return super().tournament_selection(population)
+
+    
 
 
 def main():
