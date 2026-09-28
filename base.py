@@ -171,7 +171,26 @@ class BaseAlgorithm:
             self.tournament_size
         )
 
-        return min(candidate_list, key=lambda item: item[1])
+        p = candidate_list
+        s = [[] for _ in range(len(p))]
+        n = [0] * len(p)
+        fronts = [[]]
+
+        
+        if (p[0][1] <= p[1][1] and p[0][2] <= p[1][2]) and (
+            p[0][1] < p[1][1] or p[0][2] < p[1][2]
+        ):
+            s[0].append(1)
+            n[1] += 1
+        elif (p[1][1] <= p[0][1] and p[1][2] <= p[0][2]) and (
+            p[1][1] < p[0][1] or p[1][2] < p[0][2]
+        ):
+            s[1].append(0)
+            n[0] += 1
+
+        fronts[0] = [index for index, value in enumerate(n) if value == 0]
+
+        return candidate_list[fronts[0][0]]
 
 
     def create_children(self, parent_population):

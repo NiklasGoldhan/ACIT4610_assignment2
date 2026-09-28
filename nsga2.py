@@ -88,7 +88,6 @@ class NSGA2(BaseAlgorithm):
 
         return new_population
 
-    # TODO: perform tournament selection based on rankings
     def tournament_selection(self, population):
         return super().tournament_selection(population)
 
@@ -99,6 +98,7 @@ def main():
     parents = instance.create_population()
     children = instance.create_children(parents)
     new_population = instance.determine_new_population(parents, children)
+    pass
 
 
 if __name__ == "__main__":
