@@ -6,14 +6,14 @@ class NSGA2(BaseAlgorithm):
         distances = {index: 0.0 for index in front}
         if len(front) <= 2:
             for index in front:
-                distances[index] = float('inf')
+                distances[index] = float("inf")
             return distances
 
         for obj_index in [1, 2]:
             sorted_front = sorted(front, key=lambda idx: population[idx][obj_index])
 
-            distances[sorted_front[0]] = float('inf')
-            distances[sorted_front[-1]] = float('inf')
+            distances[sorted_front[0]] = float("inf")
+            distances[sorted_front[-1]] = float("inf")
 
             min_val = population[sorted_front[0]][obj_index]
             max_val = population[sorted_front[-1]][obj_index]
@@ -27,30 +27,32 @@ class NSGA2(BaseAlgorithm):
                 distances[sorted_front[k]] += (next_val - prev_val) / val_range
         return distances
 
-
     def non_dominated_sort(self, population):
-        s = [[] for _ in range(len(population))]
-        n = [0] * len(population)
+        p = population
+        s = [[] for _ in range(len(p))]
+        n = [0] * len(p)
         fronts = [[]]
 
-        for i in range(0, len(population)):
-            for j in range(i+1, len(population)):
-                if (population[i][1] <= population[j][1] and population[i][2] <= population[j][2]):
-                    if population[i][1] < population[j][1] or population[i][2] < population[j][2]:
-                        s[i].append(j)
-                        n[j] += 1
-                elif population[j][1] <= population[i][1] and population[j][2] <= population[i][2]:
-                    if population[j][1] < population[i][1] or population[j][2] < population[i][2]:
-                        s[j].append(i)
-                        n[i] += 1
-        
+        for i in range(len(p)):
+            for j in range(i + 1, len(p)):
+                if (p[i][1] <= p[j][1] and p[i][2] <= p[j][2]) and (
+                    p[i][1] < p[j][1] or p[i][2] < p[j][2]
+                ):
+                    s[i].append(j)
+                    n[j] += 1
+                elif (p[j][1] <= p[i][1] and p[j][2] <= p[i][2]) and (
+                    p[j][1] < p[i][1] or p[j][2] < p[i][2]
+                ):
+                    s[j].append(i)
+                    n[i] += 1
+
         fronts[0] = [index for index, value in enumerate(n) if value == 0]
 
         current_front_index = 0
         while fronts[current_front_index]:
             next_front = []
-            for p in fronts[current_front_index]:
-                for q in s[p]:
+            for front in fronts[current_front_index]:
+                for q in s[front]:
                     n[q] -= 1
                     if n[q] == 0:
                         next_front.append(q)
@@ -61,18 +63,19 @@ class NSGA2(BaseAlgorithm):
 
         return fronts
 
-
-    def determine_new_population(self, parent_pop, children_pop):
+    def determine_new_population(self, parent_population, child_population):
         new_population = []
 
-        population = parent_pop + children_pop
+        population = parent_population + child_population
 
         fronts = self.non_dominated_sort(population)
 
         for front in fronts:
             if len(front) + len(new_population) > self.pop_size:
                 distances = self.calculate_crowding_distance(front, population)
-                sorted_front = sorted(front, key=lambda idx: distances[idx], reverse=True)
+                sorted_front = sorted(
+                    front, key=lambda idx: distances[idx], reverse=True
+                )
                 remaining = self.pop_size - len(new_population)
                 for index in sorted_front[:remaining]:
                     new_population.append(population[index])
@@ -85,7 +88,6 @@ class NSGA2(BaseAlgorithm):
 
         return new_population
 
-
     # TODO: perform tournament selection based on rankings
     def tournament_selection(self, population):
         return super().tournament_selection(population)
@@ -93,11 +95,12 @@ class NSGA2(BaseAlgorithm):
 
 def main():
     path = "./data/cap61.txt"
-    instance = NSGA2(path,5000,0.05,0.7,200)
+    instance = NSGA2(path, 5000, 0.05, 0.7, 200)
     parents = instance.create_population()
     children = instance.create_children(parents)
-    new_population = instance.determine_new_population(parents,children)
+    new_population = instance.determine_new_population(parents, children)
 
 
 if __name__ == "__main__":
     main()
+
