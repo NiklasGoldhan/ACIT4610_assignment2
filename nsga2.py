@@ -1,5 +1,6 @@
-from base import BaseAlgorithm
 import random
+
+from base import BaseAlgorithm
 
 
 class NSGA2(BaseAlgorithm):
@@ -95,18 +96,39 @@ class NSGA2(BaseAlgorithm):
         return new_population
 
     def tournament_selection(self, population):
-        candidate_list = random.sample(population, 2)
-        if candidate_list[0][3] < candidate_list[1][3]:
-            return candidate_list[0]
-        elif candidate_list[0][3] > candidate_list[1][3]:
-            return candidate_list[1]
-        elif candidate_list[0][3] == candidate_list[1][3]:
-            if candidate_list[0][4] < candidate_list[1][4]:
-                return candidate_list[0]
-            elif candidate_list[0][4] > candidate_list[1][4]:
-                return candidate_list[1]
+        candidates = random.sample(population, self.tournament_size)
+        return min(candidates, key=lambda ind: (ind[3], -ind[4]))
+
+    def create_children(self, parent_population):
+        children_cost_list = []
+        children = []
+        while len(children) < self.pop_size:
+            parent1 = self.tournament_selection(parent_population)
+            parent2 = self.tournament_selection(parent_population)
+
+            parent_solution1 = parent1[0]
+            parent_solution2 = parent2[0]
+
+            if random.random() <= self.crossover_rate:
+                child1, child2 = self.crossover(parent_solution1, parent_solution2)
             else:
-                return candidate_list[random.randint(0, 1)]
+                child1 = parent_solution1.copy()
+                child2 = parent_solution2.copy()
+
+            if random.random() < self.mutation_rate:
+                child1 = self.mutation(child1)
+            if random.random() < self.mutation_rate:
+                child2 = self.mutation(child2)
+
+            children.append(child1)
+            if len(children) < self.pop_size:
+                children.append(child2)
+
+        for child in children:
+            opening_cost, customer_cost = self.evaluate_solution(child)
+            children_cost_list.append([child, opening_cost, customer_cost])
+
+        return children_cost_list
 
 
 def main():
