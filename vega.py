@@ -54,10 +54,17 @@ class VEGA(BaseAlgorithm):
             parent1 = mating_pool[i][0]
             parent2 = mating_pool[i + 1][0]
 
-            child1, child2 = self.crossover(parent1, parent2)
+            if random.random() <= self.crossover_rate:
+                child1, child2 = self.crossover(parent1, parent2)
+            else:
+                child1 = parent1.copy()
+                child2 = parent2.copy()
 
             child1 = self.mutation(child1)
             child2 = self.mutation(child2)
+            child1 = self.feasibility_repair(child1)
+            child2 = self.feasibility_repair(child2)
+
 
             # evaluates children bcause next vega_selection() expects same structure
             opening_cost1, customer_cost1 = self.evaluate_solution(child1)
@@ -93,7 +100,7 @@ class VEGA(BaseAlgorithm):
 
         return nondominated
 
-    def run_algorithm(self):
+    def run(self):
         population = self.initialize_population()
 
         for _ in range(self.generations):
@@ -107,14 +114,14 @@ class VEGA(BaseAlgorithm):
 
 def main():
     algorithm = VEGA(
-        filepath="ACIT4610_assignment2/data/cap61.txt",
+        filepath="./data/cap61.txt",
         mutation_rate=0.05,
         crossover_rate=0.8,
         pop_size=200,
         generations=100,
     )
 
-    pareto_front = algorithm.run_algorithm()
+    pareto_front = algorithm.run()
 
     for solution in pareto_front:
         print(solution[1], solution[2])
