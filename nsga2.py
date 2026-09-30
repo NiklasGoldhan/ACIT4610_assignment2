@@ -1,9 +1,30 @@
 import random
+from dataclasses import dataclass
 
 from base import BaseAlgorithm
 
 
+@dataclass
+class Individual:
+    solution: list[int] | None = None
+    opening_cost: float = 0.0
+    customer_cost: float = 0.0
+    domination_count: int = 0
+    rank: int = 0
+    crowding_distance: float = 0.0
+
+
 class NSGA2(BaseAlgorithm):
+    def create_population(self):
+        solutions = [self.create_solution() for _ in range(self.pop_size)]
+
+        population = []
+        for solution in solutions:
+            opening_cost, customer_cost = self.evaluate_solution(solution)
+            population.append(Individual(solution, opening_cost, customer_cost))
+
+        return population
+
     def calculate_crowding_distance(self, front, population):
         distances = {index: 0.0 for index in front}
         if len(front) <= 2:
@@ -30,22 +51,32 @@ class NSGA2(BaseAlgorithm):
         return distances
 
     def non_dominated_sort(self, population):
-        p = population
-        s = [[] for _ in range(len(p))]
-        n = [0] * len(p)
+        P = population
+        # initialize a list to hold the solutions dominated by a given solution
+        S = [[] for _ in range(len(P))]
+        # initialize a list to hold the domination count of each individual in pop
+        n = [0] * len(P)
         fronts = [[]]
 
-        for i in range(len(p)):
-            for j in range(i + 1, len(p)):
-                if (p[i][1] <= p[j][1] and p[i][2] <= p[j][2]) and (
-                    p[i][1] < p[j][1] or p[i][2] < p[j][2]
+        for i in range(len(P)):
+            for j in range(i + 1, len(P)):
+                if (
+                    P[i].opening_cost <= P[j].opening_cost
+                    and P[i].customer_cost <= P[j].customer_cost
+                ) and (
+                    P[i].opening_cost < P[j].opening_cost
+                    or P[i].customer_cost < P[j].customer_cost
                 ):
-                    s[i].append(j)
+                    S[i].append(j)
                     n[j] += 1
-                elif (p[j][1] <= p[i][1] and p[j][2] <= p[i][2]) and (
-                    p[j][1] < p[i][1] or p[j][2] < p[i][2]
+                elif (
+                    P[j].opening_cost <= P[i].opening_cost
+                    and P[j].customer_cost <= P[i].customer_cost
+                ) and (
+                    P[j].opening_cost < P[i].opening_cost
+                    or P[j].customer_cost < P[i].customer_cost
                 ):
-                    s[j].append(i)
+                    S[j].append(i)
                     n[i] += 1
 
         fronts[0] = [index for index, value in enumerate(n) if value == 0]
@@ -54,7 +85,7 @@ class NSGA2(BaseAlgorithm):
         while fronts[current_front_index]:
             next_front = []
             for front in fronts[current_front_index]:
-                for q in s[front]:
+                for q in S[front]:
                     n[q] -= 1
                     if n[q] == 0:
                         next_front.append(q)
@@ -69,9 +100,8 @@ class NSGA2(BaseAlgorithm):
         new_population = []
         population = parent_population + child_population
         fronts = self.non_dominated_sort(population)
-        front_index = 0
 
-        for front in fronts:
+        for front_index, front in enumerate(fronts):
             if len(front) + len(new_population) > self.pop_size:
                 distances = self.calculate_crowding_distance(front, population)
                 sorted_front = sorted(
@@ -91,13 +121,12 @@ class NSGA2(BaseAlgorithm):
                     new_population.append(population[solution_index])
                     if len(new_population) == self.pop_size:
                         break
-            front_index += 1
 
         return new_population
 
     def tournament_selection(self, population):
         candidates = random.sample(population, self.tournament_size)
-        return min(candidates, key=lambda ind: (ind[3], -ind[4]))
+        return min(candidates, key=lambda ind: (ind.rank, -ind.crowding_distance))
 
     def create_children(self, parent_population):
         children_cost_list = []
@@ -106,8 +135,8 @@ class NSGA2(BaseAlgorithm):
             parent1 = self.tournament_selection(parent_population)
             parent2 = self.tournament_selection(parent_population)
 
-            parent_solution1 = parent1[0]
-            parent_solution2 = parent2[0]
+            parent_solution1 = parent1.solution
+            parent_solution2 = parent2.solution
 
             if random.random() <= self.crossover_rate:
                 child1, child2 = self.crossover(parent_solution1, parent_solution2)
@@ -126,17 +155,6 @@ class NSGA2(BaseAlgorithm):
 
         for child in children:
             opening_cost, customer_cost = self.evaluate_solution(child)
-            children_cost_list.append([child, opening_cost, customer_cost])
+            children_cost_list.append(Individual(child, opening_cost, customer_cost))
 
         return children_cost_list
-
-
-def main():
-    path = "./data/cap61.txt"
-    instance = NSGA2(path, 5000, 0.05, 0.7, 200)
-    parents = instance.create_population()
-    pass
-
-
-if __name__ == "__main__":
-    main()
