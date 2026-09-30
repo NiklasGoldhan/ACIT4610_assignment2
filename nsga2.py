@@ -23,7 +23,7 @@ class NSGA2(BaseAlgorithm):
             opening_cost, customer_cost = self.evaluate_solution(solution)
             population.append(Individual(solution, opening_cost, customer_cost))
 
-        return population
+        return self.assign_rank_and_distance(population)
 
     def calculate_crowding_distance(self, front, population):
         distances = {index: 0.0 for index in front}
@@ -32,21 +32,23 @@ class NSGA2(BaseAlgorithm):
                 distances[index] = float("inf")
             return distances
 
-        for obj_index in [1, 2]:
-            sorted_front = sorted(front, key=lambda idx: population[idx][obj_index])
+        for obj_attr in ["opening_cost", "customer_cost"]:
+            sorted_front = sorted(
+                front, key=lambda idx: getattr(population[idx], obj_attr)
+            )
 
             distances[sorted_front[0]] = float("inf")
             distances[sorted_front[-1]] = float("inf")
 
-            min_val = population[sorted_front[0]][obj_index]
-            max_val = population[sorted_front[-1]][obj_index]
+            min_val = getattr(population[sorted_front[0]], obj_attr)
+            max_val = getattr(population[sorted_front[-1]], obj_attr)
             val_range = max_val - min_val
 
             if val_range == 0:
                 continue
             for k in range(1, len(sorted_front) - 1):
-                prev_val = population[sorted_front[k - 1]][obj_index]
-                next_val = population[sorted_front[k + 1]][obj_index]
+                prev_val = getattr(population[sorted_front[k - 1]], obj_attr)
+                next_val = getattr(population[sorted_front[k + 1]], obj_attr)
                 distances[sorted_front[k]] += (next_val - prev_val) / val_range
         return distances
 
@@ -97,19 +99,13 @@ class NSGA2(BaseAlgorithm):
         return fronts
 
     def assign_rank_and_distance(self, population):
-        ranked_population = []
         fronts = self.non_dominated_sort(population)
         for front_index, front in enumerate(fronts):
             distances = self.calculate_crowding_distance(front, population)
             for index in front:
-                ranked_population.append(
-                    population[index][:3] + [front_index, distances.get(index)]
-                )
-        return ranked_population
-
-    def create_population(self):
-        population = super().create_population()
-        return self.assign_rank_and_distance(population)
+                population[index].rank = front_index
+                population[index].crowding_distance = distances[index]
+        return population
 
     def create_new_population(self, parent_population):
         new_population = []
@@ -118,21 +114,24 @@ class NSGA2(BaseAlgorithm):
         fronts = self.non_dominated_sort(population)
 
         for front_index, front in enumerate(fronts):
+            distances = self.calculate_crowding_distance(front, population)
+            for index in front:
+                population[index].rank = front_index
+                population[index].crowding_distance = distances[index]
+
             if len(front) + len(new_population) > self.pop_size:
-                distances = self.calculate_crowding_distance(front, population)
                 sorted_front = sorted(
                     front, key=lambda idx: distances[idx], reverse=True
                 )
                 remaining = self.pop_size - len(new_population)
                 for index in sorted_front[:remaining]:
-                    new_population.append(population[index][:3] + [front_index, distances.get(index)])
+                    new_population.append(population[index])
                 break
             else:
-                distances = self.calculate_crowding_distance(front, population)
                 for index in front:
-                    new_population.append(population[index][:3] + [front_index, distances.get(index)])
-                    if len(new_population) == self.pop_size:
-                        break
+                    new_population.append(population[index])
+                if len(new_population) == self.pop_size:
+                    break
 
         return new_population
 
@@ -185,10 +184,10 @@ def main():
     population = instance.run()
     index = 0
     for solution in population:
-        if solution[3] == 0:
+        if solution.rank == 0:
             print(index)
-            print(f"Warehpouse opening cost: {solution[1]}")
-            print(f"Customer cost: {solution[2]}")
+            print(f"Warehouse opening cost: {solution.opening_cost}")
+            print(f"Customer cost: {solution.customer_cost}")
             print("______________________________________")    
         index += 1    
     pass
