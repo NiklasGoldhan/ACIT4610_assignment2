@@ -127,10 +127,11 @@ class NSGA2(BaseAlgorithm):
                 child1 = parent_solution1.copy()
                 child2 = parent_solution2.copy()
 
-            if random.random() < self.mutation_rate:
-                child1 = self.mutation(child1)
-            if random.random() < self.mutation_rate:
-                child2 = self.mutation(child2)
+            child1 = self.mutation(child1)
+            child2 = self.mutation(child2)
+            child1 = self.feasibility_repair(child1)
+            child2 = self.feasibility_repair(child2)
+
 
             children.append(child1)
             if len(children) < self.pop_size:

@@ -127,7 +127,6 @@ class BaseAlgorithm:
                         new_warehouse -= 1
                         solution[customer_index] = new_warehouse
 
-        solution = self.feasibility_repair(solution)
         return solution
 
 
