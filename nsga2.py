@@ -65,8 +65,24 @@ class NSGA2(BaseAlgorithm):
 
         return fronts
 
-    def determine_new_population(self, parent_population, child_population):
+    def assign_rank_and_distance(self, population):
+        ranked_population = []
+        fronts = self.non_dominated_sort(population)
+        for front_index, front in enumerate(fronts):
+            distances = self.calculate_crowding_distance(front, population)
+            for index in front:
+                ranked_population.append(
+                    population[index][:3] + [front_index, distances.get(index)]
+                )
+        return ranked_population
+
+    def create_population(self):
+        population = super().create_population()
+        return self.assign_rank_and_distance(population)
+
+    def create_new_population(self, parent_population):
         new_population = []
+        child_population = self.create_children(parent_population)
         population = parent_population + child_population
         fronts = self.non_dominated_sort(population)
         front_index = 0
@@ -79,16 +95,12 @@ class NSGA2(BaseAlgorithm):
                 )
                 remaining = self.pop_size - len(new_population)
                 for index in sorted_front[:remaining]:
-                    population[index].append(front_index)
-                    population[index].append(distances.get(index))
-                    new_population.append(population[index])
+                    new_population.append(population[index][:3] + [front_index, distances.get(index)])
                 break
             else:
                 distances = self.calculate_crowding_distance(front, population)
-                for solution_index in front:
-                    population[solution_index].append(front_index)
-                    population[solution_index].append(distances.get(solution_index))
-                    new_population.append(population[solution_index])
+                for index in front:
+                    new_population.append(population[index][:3] + [front_index, distances.get(index)])
                     if len(new_population) == self.pop_size:
                         break
             front_index += 1
@@ -130,11 +142,25 @@ class NSGA2(BaseAlgorithm):
 
         return children_cost_list
 
+    def run(self):
+        population = self.create_population()
+        for _ in range(0,self.generations):
+            population = self.create_new_population(population)
+        return population
+
 
 def main():
     path = "./data/cap61.txt"
-    instance = NSGA2(path, 5000, 0.05, 0.7, 200)
-    parents = instance.create_population()
+    instance = NSGA2(path, 100, 0.05, 0.7, 200)
+    population = instance.run()
+    index = 0
+    for solution in population:
+        if solution[3] == 0:
+            print(index)
+            print(f"Warehpouse opening cost: {solution[1]}")
+            print(f"Customer cost: {solution[2]}")
+            print("______________________________________")    
+        index += 1    
     pass
 
 
