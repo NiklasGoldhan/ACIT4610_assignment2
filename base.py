@@ -31,16 +31,15 @@ class BaseAlgorithm:
         self.tournament_size = 2
         self.pop_size = pop_size
 
-
     def create_solution(self):
         # index=customer; entry=warehouse
         solution = []
 
         for _ in range(self.customer_count):
             solution.append(random.randint(0, self.warehouse_count - 1))
+        self.feasibility_repair(solution)
 
         return solution
-
 
     def feasibility_repair(self, solution):
         solution = solution.copy()
@@ -90,7 +89,6 @@ class BaseAlgorithm:
 
         return solution
 
-
     def crossover(self, solution1, solution2):
         child_solution1 = [None] * len(solution1)
         child_solution2 = [None] * len(solution1)
@@ -110,7 +108,6 @@ class BaseAlgorithm:
 
         return child_solution1, child_solution2
 
-
     def mutation(self, solution):
         solution = solution.copy()
         for customer_index in range(len(solution)):
@@ -129,11 +126,9 @@ class BaseAlgorithm:
 
         return solution
 
-
     def calculate_opening_cost(self, solution):
         open_facilities = set(solution)
         return sum(self.warehouse_data[f][1] for f in open_facilities)
-
 
     def calculate_customer_cost(self, solution):
         total_customer_cost = 0.0
@@ -143,13 +138,11 @@ class BaseAlgorithm:
 
         return total_customer_cost
 
-
     def evaluate_solution(self, solution):
         opening_cost = round(self.calculate_opening_cost(solution), 5)
         customer_cost = round(self.calculate_customer_cost(solution), 5)
 
         return opening_cost, customer_cost
-
 
     # returns population list with [pop, warehouse opening cost, customer cost]
     def create_population(self):
@@ -157,80 +150,7 @@ class BaseAlgorithm:
 
         population_cost_list = []
         for solution in population:
-            solution = self.feasibility_repair(solution)
             opening_cost, customer_cost = self.evaluate_solution(solution)
             population_cost_list.append([solution, opening_cost, customer_cost])
 
         return population_cost_list
-
-
-    def tournament_selection(self, population):
-        candidate_list = random.sample(
-            population,
-            self.tournament_size
-        )
-
-        p = candidate_list
-        s = [[] for _ in range(len(p))]
-        n = [0] * len(p)
-        fronts = [[]]
-
-        
-        if (p[0][1] <= p[1][1] and p[0][2] <= p[1][2]) and (
-            p[0][1] < p[1][1] or p[0][2] < p[1][2]
-        ):
-            s[0].append(1)
-            n[1] += 1
-        elif (p[1][1] <= p[0][1] and p[1][2] <= p[0][2]) and (
-            p[1][1] < p[0][1] or p[1][2] < p[0][2]
-        ):
-            s[1].append(0)
-            n[0] += 1
-
-        fronts[0] = [index for index, value in enumerate(n) if value == 0]
-
-        return candidate_list[fronts[0][0]]
-
-
-    def create_children(self, parent_population):
-        children_cost_list = []
-        children = []
-        while len(children) < self.pop_size:
-            parent1 = self.tournament_selection(parent_population)
-            parent2 = self.tournament_selection(parent_population)
-
-            parent_solution1 = parent1[0]
-            parent_solution2 = parent2[0]
-
-            if random.random() <= self.crossover_rate:
-                child1, child2 = self.crossover(parent_solution1, parent_solution2)
-            else:
-                child1 = parent_solution1.copy()
-                child2 = parent_solution2.copy()
-
-            if random.random() < self.mutation_rate:
-                child1 = self.mutation(child1)
-            if random.random() < self.mutation_rate:
-                child2 = self.mutation(child2)
-
-            children.append(child1)
-            if len(children) < self.pop_size:
-                    children.append(child2)
-
-        for child in children:
-            opening_cost, customer_cost = self.evaluate_solution(child)
-            children_cost_list.append([child, opening_cost, customer_cost])
-            
-        return children_cost_list
-
-
-def main():
-    path = "./data/cap61.txt"
-    instance = BaseAlgorithm(path, 5000, 0.05, 0.7 , 200)
-    population = instance.create_population()
-    children = instance.create_children(population)
-    print()
-
-
-if __name__ == "__main__":
-    main()
