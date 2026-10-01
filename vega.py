@@ -2,15 +2,6 @@ from base import BaseAlgorithm
 import random
 
 class VEGA(BaseAlgorithm):
-    def __init__(self, filepath, generations, mutation_rate, crossover_rate, pop_size):
-        super().__init__(
-            filepath=filepath,
-            generations=generations,
-            mutation_rate=mutation_rate,
-            crossover_rate=crossover_rate,
-            pop_size=pop_size,
-        )
-
     def initialize_population(self):
         '''
         individual[0] = solution
