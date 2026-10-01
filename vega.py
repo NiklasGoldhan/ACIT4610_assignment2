@@ -31,7 +31,7 @@ class VEGA(BaseAlgorithm):
         # Objective 1: opening cost
         worst = max(individual[1] for individual in sub_opening_cost)
         opening_weights = [
-            worst - 1 + individual[1]
+            worst - individual[1] + 1
             for individual in sub_opening_cost
         ]
 
@@ -44,7 +44,7 @@ class VEGA(BaseAlgorithm):
         # Objective 2: customer cost
         worst = max(individual[2] for individual in sub_customer_cost)
         customer_weights = [
-            worst - 1 + individual[2]
+            worst - individual[2] + 1
             for individual in sub_customer_cost
         ]
 
@@ -66,7 +66,7 @@ class VEGA(BaseAlgorithm):
             parent1 = mating_pool[i][0]
             parent2 = mating_pool[i + 1][0]
 
-            if random.random <= self.crossover_rate:
+            if random.random() <= self.crossover_rate:
                 child1, child2 = self.crossover(parent1, parent2)
             else:
                 child1 = parent1.copy()
