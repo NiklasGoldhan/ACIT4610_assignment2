@@ -1,4 +1,4 @@
-from base import BaseAlgorithm
+from base import *
 import random
 
 class VEGA(BaseAlgorithm):
@@ -131,14 +131,17 @@ class VEGA(BaseAlgorithm):
         return archive
 
 def main():
+    path = "./data/cap61.txt"
+    instance = Problem.from_file(path)
+
     algorithm = VEGA(
-        filepath="./data/cap61.txt",
+        instance,
         mutation_rate=0.05,
         crossover_rate=0.2,
         pop_size=200,
         generations=100
     )
-
+    
     pareto_front = algorithm.run()
 
     for solution in pareto_front:

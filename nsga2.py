@@ -1,10 +1,11 @@
 import random
 from dataclasses import dataclass
+import matplotlib.pyplot as plt
 
-from base import BaseAlgorithm
+from base import *
 
 
-@dataclass
+@dataclass(slots=True)
 class Individual:
     solution: list[int] | None = None
     opening_cost: float = 0.0
@@ -27,6 +28,7 @@ class NSGA2(BaseAlgorithm):
 
     def calculate_crowding_distance(self, front, population):
         distances = {index: 0.0 for index in front}
+
         if len(front) <= 2:
             for index in front:
                 distances[index] = float("inf")
@@ -50,6 +52,7 @@ class NSGA2(BaseAlgorithm):
                 prev_val = getattr(population[sorted_front[k - 1]], obj_attr)
                 next_val = getattr(population[sorted_front[k + 1]], obj_attr)
                 distances[sorted_front[k]] += (next_val - prev_val) / val_range
+
         return distances
 
     def non_dominated_sort(self, population):
@@ -180,17 +183,30 @@ class NSGA2(BaseAlgorithm):
 
 def main():
     path = "./data/cap61.txt"
-    instance = NSGA2(path, 100, 0.05, 0.7, 200)
-    population = instance.run()
-    index = 0
-    for solution in population:
-        if solution.rank == 0:
-            print(index)
-            print(f"Warehouse opening cost: {solution.opening_cost}")
-            print(f"Customer cost: {solution.customer_cost}")
-            print("______________________________________")    
-        index += 1    
-    pass
+    instance = Problem.from_file(path)
+    algorithm = NSGA2(
+        instance,
+        generations=1000,
+        mutation_rate=0.05,
+        crossover_rate=0.8,
+        pop_size=200
+    )
+
+    final_population = algorithm.run()
+
+    front = sorted({
+        (ind.opening_cost, ind.customer_cost)
+        for ind in final_population
+        if ind.rank == 0
+    })
+    opening, customer = zip(*front)
+
+    plt.plot(opening, customer, "o-")
+    plt.xlabel("Facility opening cost")
+    plt.ylabel("Customer allocation cost")
+    plt.title("Pareto front – cap61")
+    plt.grid(True)
+    plt.show()
 
 
 if __name__ == "__main__":
