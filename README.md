@@ -22,10 +22,10 @@ python benchmark.py
 
 ## Running the benchmark
 
-`benchmark.py` runs both algorithms on the six OR-Library instances, with four shared parameter configs and 10 seeded runs each. It prints hypervolume, number of non-dominated solutions, and runtime, and saves Pareto plots in `plots/`.
+benchmark.py runs both algorithms on the six OR-Library instances, with four shared parameter configs and 10 seeded runs each. It prints hypervolume, number of non-dominated solutions, and runtime, and saves Pareto plots in plots/.
 
 A full run can take a few minutes. Example output is in `benchmark_results.log`.
 
-## AI note
+AI note
 
-`benchmark.py` was co-developed with AI assistance. The MOEA code is the group's; the benchmark runner was written with AI support and reviewed by us.
+The benchmark runner was written with AI support and reviewed by us.
