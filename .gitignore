@@ -2,3 +2,5 @@
 .vscode
 __pycache__
 uv.lock
+benchmark_results.log
+plots/
