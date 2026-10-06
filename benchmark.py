@@ -101,10 +101,9 @@ def nondominated_points(points):
     return front
 
 
-def run_once(algo_name: str, problem: Problem, instance_name: str, params: dict, seed: int) -> dict:
+def run_once(algo_name: str, problem: Problem, params: dict, seed: int) -> dict:
     random.seed(seed)
 
-    problem = Problem.from_file(instance_path(instance_name))
     algorithm = ALGORITHMS[algo_name](problem, **params)
 
     start = time.perf_counter()
@@ -182,7 +181,7 @@ def run_cell(problem, instance_name, config_name, params, num_runs):
     for algo_name in ALGORITHMS:
         for run_id in range(num_runs):
             seed = (BASE_SEED + run_id) if BASE_SEED is not None else None
-            result = run_once(algo_name, problem, instance_name, params, seed)
+            result = run_once(algo_name, problem, params, seed)
             result["seed"] = seed
             runs[algo_name].append(result)
     return {
