@@ -2,10 +2,12 @@
 benchmarking NSGA-II and VEGA on CFLP.
 """
 
+import csv
 import os
 import random
 import statistics
 import time
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
@@ -17,6 +19,16 @@ from vega import VEGA
 
 DATA_DIR = Path(__file__).parent / "data"
 PLOT_DIR = Path(__file__).parent / "plots"
+RESULTS_DIR = Path(__file__).parent / "results"
+
+INSTANCE_CATEGORIES = {
+    "cap61": "small",
+    "cap62": "small",
+    "cap101": "medium",
+    "cap102": "medium",
+    "cap121": "large",
+    "cap122": "large",
+}
 
 ALGORITHMS = {
     "nsga2": NSGA2,
@@ -36,6 +48,10 @@ PLOT_INSTANCES = ["cap61", "cap62", "cap101", "cap102", "cap121", "cap122"]
 
 BASE_SEED = None
 HV_REF = (1.1, 1.1)
+
+# Run on available CPU cores - 1 or 1 if none are detected
+cores = os.cpu_count()
+NUM_WORKERS = cores - 1 if cores is not None and cores > 1 else 1
 
 NUM_RUNS = 10
 GENERATIONS = 200
@@ -116,6 +132,23 @@ def run_once(algo_name: str, problem: Problem, params: dict, seed: int) -> dict:
         "n_nondominated": len(front),
         "time_seconds": elapsed,
     }
+
+
+# -----AI Generated start-----
+def _worker_task(args):
+    """Worker function executed inside parallel process pool."""
+    instance_name, config_name, algo_name, params, run_idx, seed = args
+    problem = Problem.from_file(instance_path(instance_name))
+    run_result = run_once(algo_name, problem, params, seed)
+    return {
+        "instance": instance_name,
+        "config": config_name,
+        "algorithm": algo_name,
+        "run_idx": run_idx,
+        "seed": seed,
+        **run_result,
+    }
+# -----AI Generated end-----
 
 
 def shared_bounds(fronts):
@@ -235,16 +268,131 @@ def plot_pareto(cell, out_dir=PLOT_DIR):
     print(f"Saved plot: {path}")
 
 
-def run_experiment():
+# -----AI Generated start-----
+def save_csv_results(cells, out_csv="results/metrics.csv", raw_csv="results/raw_runs.csv"):
+    """Export summary metrics and raw run data to CSV files."""
+    summary_rows = []
+    raw_rows = []
+
+    for cell in cells:
+        instance_name = cell["instance"]
+        config_name = cell["config"]
+        category = INSTANCE_CATEGORIES.get(instance_name, "unknown")
+        params = CONFIGS.get(config_name, {})
+
+        for algo_name, algo_runs in cell["runs"].items():
+            for result in algo_runs:
+                raw_rows.append({
+                    "category": category,
+                    "instance": instance_name,
+                    "config": config_name,
+                    "algorithm": algo_name,
+                    "run_idx": result["run_idx"],
+                    "seed": result.get("seed"),
+                    "hv": round(result["hv"], 6),
+                    "n_nondominated": result["n_nondominated"],
+                    "time_seconds": round(result["time_seconds"], 4),
+                })
+
+            hv_stats = summarize([r["hv"] for r in algo_runs])
+            nd_stats = summarize([r["n_nondominated"] for r in algo_runs])
+            time_stats = summarize([r["time_seconds"] for r in algo_runs])
+
+            summary_rows.append({
+                "category": category,
+                "instance": instance_name,
+                "config": config_name,
+                "algorithm": algo_name,
+                "hv_mean": round(hv_stats["mean"], 6),
+                "hv_std": round(hv_stats["std"], 6),
+                "hv_best": round(hv_stats["best"], 6),
+                "hv_worst": round(hv_stats["worst"], 6),
+                "nd_mean": round(nd_stats["mean"], 2),
+                "nd_std": round(nd_stats["std"], 2),
+                "time_mean": round(time_stats["mean"], 4),
+                "time_std": round(time_stats["std"], 4),
+                **{f"p_{k}": v for k, v in params.items()},
+            })
+
+    if out_csv and summary_rows:
+        out_path = Path(out_csv)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(out_path, "w", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=summary_rows[0].keys())
+            w.writeheader()
+            w.writerows(summary_rows)
+        print(f"Wrote summary metrics to {out_path}")
+
+    if raw_csv and raw_rows:
+        raw_path = Path(raw_csv)
+        raw_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(raw_path, "w", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=raw_rows[0].keys())
+            w.writeheader()
+            w.writerows(raw_rows)
+        print(f"Wrote raw runs to {raw_path}")
+# -----AI Generated end-----
+
+
+def run_experiment(
+    out_csv="results/metrics.csv",
+    raw_csv="results/raw_runs.csv",
+    num_workers=NUM_WORKERS,
+):
+    PLOT_DIR.mkdir(parents=True, exist_ok=True)
+
+    # -----AI Generated start-----
+    tasks = []
+    for instance_name in INSTANCES:
+        for config_name, params in CONFIGS.items():
+            for algo_name in ALGORITHMS:
+                for run_idx in range(NUM_RUNS):
+                    seed = (BASE_SEED + run_idx) if BASE_SEED is not None else None
+                    tasks.append((instance_name, config_name, algo_name, params, run_idx, seed))
+
+    total_tasks = len(tasks)
+    print(f"Starting {total_tasks} runs using {num_workers} parallel workers...")
+    t_start = time.perf_counter()
+
+    results_by_config = {}
+    completed_count = 0
+
+    with ProcessPoolExecutor(max_workers=num_workers) as executor:
+        futures = [executor.submit(_worker_task, t) for t in tasks]
+        for future in as_completed(futures):
+            res = future.result()
+            key = (res["instance"], res["config"], res["algorithm"])
+            results_by_config.setdefault(key, []).append(res)
+            completed_count += 1
+            print(
+                f"[{completed_count:3d}/{total_tasks}] "
+                f"{res['instance']} / {res['config']} / {res['algorithm']} "
+                f"(Run {res['run_idx']+1:2d}/{NUM_RUNS}) -> "
+                f"ND: {res['n_nondominated']}, Time: {res['time_seconds']:.2f}s"
+            )
+
+    elapsed_all = time.perf_counter() - t_start
+    print(f"All {total_tasks} runs finished in {elapsed_all:.2f}s across {num_workers} cores.\n")
+    # -----AI Generated end-----
+
     cells = []
     for instance_name in INSTANCES:
-        problem = Problem.from_file(instance_path(instance_name))
         instance_cells = []
-        # 1. Run all configs for this instance first
-        for config_name, params in CONFIGS.items():
-            print(f"Running {instance_name} / {config_name} ({NUM_RUNS} runs each)...")
-            cell = run_cell(problem, instance_name, config_name, params, NUM_RUNS)
+        # 1. Assemble cells for this instance
+        for config_name in CONFIGS:
+            cell_runs = {}
+            for algo_name in ALGORITHMS:
+                runs = results_by_config.get((instance_name, config_name, algo_name), [])
+                runs.sort(key=lambda r: r["run_idx"])  # keep deterministic ordering
+                cell_runs[algo_name] = runs
+
+            cell = {
+                "instance": instance_name,
+                "config": config_name,
+                "runs": cell_runs,
+            }
             instance_cells.append(cell)
+
         # 2. Compute one shared bounding box across all configs & algorithms for this instance
         all_instance_fronts = [
             r["front"]
@@ -254,6 +402,7 @@ def run_experiment():
             if r["front"]
         ]
         inst_bounds = shared_bounds(all_instance_fronts)
+
         # 3. Calculate hypervolume using the shared bounds, then summarize and plot
         for cell in instance_cells:
             cell["bounds"] = inst_bounds
@@ -264,6 +413,11 @@ def run_experiment():
             if instance_name in PLOT_INSTANCES:
                 plot_pareto(cell)
             cells.append(cell)
+
+    # -----AI Generated start-----
+    save_csv_results(cells, out_csv=out_csv, raw_csv=raw_csv)
+    # -----AI Generated end-----
+
     return cells
 
 
