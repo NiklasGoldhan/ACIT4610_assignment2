@@ -1,5 +1,7 @@
+import os
 import random
 from dataclasses import dataclass
+os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
 import matplotlib.pyplot as plt
 
 from base import *

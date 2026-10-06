@@ -78,13 +78,8 @@ class VEGA(BaseAlgorithm):
         return offspring
 
     def dominates(self, a, b):
-        """Objective vector a is not worse in every objective and strictly better in at least one objective."""
-        objectives_a = a[1:]
-        objectives_b = b[1:]
-        
-        return all(x <= y for x, y in zip(objectives_a, objectives_b)) and any(
-            x < y for x, y in zip(objectives_a, objectives_b)
-        )
+        """f1 is a[1], f2 is a[2]. Check Pareto dominance directly without slicing."""
+        return (a[1] <= b[1] and a[2] <= b[2]) and (a[1] < b[1] or a[2] < b[2])
 
     def nondominated_solutions(self, population):
         nondominated = []

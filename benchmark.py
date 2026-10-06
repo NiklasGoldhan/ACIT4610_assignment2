@@ -2,11 +2,13 @@
 benchmarking NSGA-II and VEGA on CFLP.
 """
 
+import os
 import random
 import statistics
 import time
 from pathlib import Path
 
+os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
 import matplotlib.pyplot as plt
 
 from base import Problem
@@ -30,9 +32,12 @@ INSTANCES = [
     "cap122",
 ]
 
-# One small / medium / large instance for the report plots
-PLOT_INSTANCES = ["cap61", "cap101", "cap121"]
+PLOT_INSTANCES = ["cap61", "cap62", "cap101", "cap102", "cap121", "cap122"]
 
+BASE_SEED = None
+HV_REF = (1.1, 1.1)
+
+NUM_RUNS = 10
 GENERATIONS = 200
 
 CONFIGS = {
@@ -61,10 +66,6 @@ CONFIGS = {
         "mutation_rate": 0.2,
     },
 }
-
-NUM_RUNS = 10
-BASE_SEED = 42
-HV_REF = (1.1, 1.1)
 
 
 def instance_path(name: str) -> Path:
@@ -100,7 +101,7 @@ def nondominated_points(points):
     return front
 
 
-def run_once(algo_name: str, instance_name: str, params: dict, seed: int) -> dict:
+def run_once(algo_name: str, problem: Problem, instance_name: str, params: dict, seed: int) -> dict:
     random.seed(seed)
 
     problem = Problem.from_file(instance_path(instance_name))
@@ -172,31 +173,21 @@ def summarize(values):
     }
 
 
-def run_cell(instance_name, config_name, params, num_runs):
+def run_cell(problem, instance_name, config_name, params, num_runs):
     """
     Run both algorithms for num_runs seeds on one instance/config.
-    Shared HV bounds are built from all fronts in this cell.
+    Returns raw runs (HV is calculated later with instance-wide bounds).
     """
     runs = {algo: [] for algo in ALGORITHMS}
-
     for algo_name in ALGORITHMS:
         for run_id in range(num_runs):
-            seed = BASE_SEED + run_id
-            result = run_once(algo_name, instance_name, params, seed)
+            seed = (BASE_SEED + run_id) if BASE_SEED is not None else None
+            result = run_once(algo_name, problem, instance_name, params, seed)
             result["seed"] = seed
             runs[algo_name].append(result)
-
-    all_fronts = [r["front"] for algo_runs in runs.values() for r in algo_runs]
-    bounds = shared_bounds(all_fronts)
-
-    for algo_runs in runs.values():
-        for result in algo_runs:
-            result["hv"] = hypervolume(result["front"], bounds)
-
     return {
         "instance": instance_name,
         "config": config_name,
-        "bounds": bounds,
         "runs": runs,
     }
 
@@ -223,7 +214,9 @@ def plot_pareto(cell, out_dir=PLOT_DIR):
 
     markers = {"nsga2": "o", "vega": "x"}
     for algo_name, algo_runs in cell["runs"].items():
-        front = algo_runs[0]["front"]
+        sorted_runs = sorted(algo_runs, key=lambda r: r["hv"])
+        median_run = sorted_runs[len(sorted_runs) // 2]
+        front = median_run["front"]
         if not front:
             continue
         xs = [p[0] for p in front]
@@ -246,11 +239,30 @@ def plot_pareto(cell, out_dir=PLOT_DIR):
 def run_experiment():
     cells = []
     for instance_name in INSTANCES:
+        problem = Problem.from_file(instance_path(instance_name))
+        instance_cells = []
+        # 1. Run all configs for this instance first
         for config_name, params in CONFIGS.items():
             print(f"Running {instance_name} / {config_name} ({NUM_RUNS} runs each)...")
-            cell = run_cell(instance_name, config_name, params, NUM_RUNS)
+            cell = run_cell(problem, instance_name, config_name, params, NUM_RUNS)
+            instance_cells.append(cell)
+        # 2. Compute one shared bounding box across all configs & algorithms for this instance
+        all_instance_fronts = [
+            r["front"]
+            for cell in instance_cells
+            for algo_runs in cell["runs"].values()
+            for r in algo_runs
+            if r["front"]
+        ]
+        inst_bounds = shared_bounds(all_instance_fronts)
+        # 3. Calculate hypervolume using the shared bounds, then summarize and plot
+        for cell in instance_cells:
+            cell["bounds"] = inst_bounds
+            for algo_runs in cell["runs"].values():
+                for result in algo_runs:
+                    result["hv"] = hypervolume(result["front"], inst_bounds)
             print_cell_summary(cell)
-            if instance_name in PLOT_INSTANCES and config_name == "baseline":
+            if instance_name in PLOT_INSTANCES:
                 plot_pareto(cell)
             cells.append(cell)
     return cells

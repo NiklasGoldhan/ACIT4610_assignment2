@@ -54,7 +54,7 @@ class BaseAlgorithm:
 
         for _ in range(self.instance.customer_count):
             solution.append(random.randint(0, self.instance.warehouse_count - 1))
-        self.feasibility_repair(solution)
+        solution = self.feasibility_repair(solution)
 
         return solution
 
@@ -111,8 +111,7 @@ class BaseAlgorithm:
         child_solution2 = [None] * len(solution1)
 
         for index in range(len(solution1)):
-            value_choice = random.choice([0, 1])
-            if value_choice == 1:
+            if random.random() < 0.5:
                 child_solution1[index] = solution1[index]
                 child_solution2[index] = solution2[index]
             else:
