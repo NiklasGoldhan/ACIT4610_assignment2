@@ -9,6 +9,7 @@ class Problem:
     warehouse_data: list
     customer_data: list
 
+    # parses the problem data from a given file path
     @classmethod
     def from_file(cls, filepath):
         with open(filepath, "r") as file:
@@ -48,6 +49,7 @@ class BaseAlgorithm:
         self.pop_size = pop_size
         self.tournament_size = 2
 
+    # creates a new solution with random initalized values then runs feasibility repair on it
     def create_solution(self):
         # index=customer; entry=warehouse
         solution = []
@@ -58,6 +60,7 @@ class BaseAlgorithm:
 
         return solution
 
+    # ensures that a given solution is valid, checks capacity
     def feasibility_repair(self, solution):
         solution = solution.copy()
         unassigned_customers = []
@@ -66,8 +69,10 @@ class BaseAlgorithm:
         for customer in range(len(solution)):
             warehouse = solution[customer]
             demand = self.instance.customer_data[customer][0]
+            # if warehouse has enough capacity, assign customer
             if facility_usage[warehouse] + demand <= self.instance.warehouse_data[warehouse][0]:
                 facility_usage[warehouse] += demand
+            # otherwise add it to the list of unassigned customers
             else:
                 unassigned_customers.append(customer)
 
@@ -75,6 +80,7 @@ class BaseAlgorithm:
             demand = self.instance.customer_data[customer][0]
             costs = self.instance.customer_data[customer][1]
 
+            # get open warehouses with enough capacity
             open_facilities_with_space = [
                 f
                 for f in range(self.instance.warehouse_count)
@@ -82,8 +88,10 @@ class BaseAlgorithm:
                 and facility_usage[f] + demand <= self.instance.warehouse_data[f][0]
             ]
 
+            # choose the cheapest open option
             if open_facilities_with_space:
                 best_facility = min(open_facilities_with_space, key=lambda f: costs[f])
+            # otherwise find closed warehouse with space and pick cheapest option
             else:
                 closed_facilities_with_space = [
                     f
@@ -100,10 +108,12 @@ class BaseAlgorithm:
 
         return solution
 
+    # creates two children from two parents
     def crossover(self, solution1, solution2):
         child_solution1 = [None] * len(solution1)
         child_solution2 = [None] * len(solution1)
 
+        # pick at random which parent each child gets the value from
         for index in range(len(solution1)):
             if random.random() < 0.5:
                 child_solution1[index] = solution1[index]
@@ -114,14 +124,18 @@ class BaseAlgorithm:
 
         return child_solution1, child_solution2
 
+    # mutates the given solution and returns the new solution
     def mutation(self, solution):
         solution = solution.copy()
         for customer_index in range(len(solution)):
             mutation_random = random.random()
+
             if mutation_random <= self.mutation_rate:
                 new_warehouse = random.randint(0, self.instance.warehouse_count - 1)
+                # assign the random new warehouse if it is not the same
                 if new_warehouse != solution[customer_index]:
                     solution[customer_index] = new_warehouse
+                # offset by 1 if it is the same
                 else:
                     if new_warehouse < self.instance.warehouse_count - 1:
                         new_warehouse += 1
