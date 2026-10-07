@@ -90,16 +90,10 @@ class BaseAlgorithm:
                     for f in range(self.instance.warehouse_count)
                     if facility_usage[f] == 0 and demand <= self.instance.warehouse_data[f][0]
                 ]
-                if closed_facilities_with_space:
-                    best_facility = min(
-                        closed_facilities_with_space,
-                        key=lambda f: self.instance.warehouse_data[f][1] + costs[f],
-                    )
-                else:
-                    best_facility = max(
-                        range(self.instance.warehouse_count),
-                        key=lambda f: self.instance.warehouse_data[f][0] - facility_usage[f],
-                    )
+                best_facility = min(
+                    closed_facilities_with_space,
+                    key=lambda f: self.instance.warehouse_data[f][1] + costs[f],
+                )
 
             solution[customer] = best_facility
             facility_usage[best_facility] += demand
