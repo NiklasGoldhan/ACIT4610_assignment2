@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from base import *
 
 
+# dataclass representing an individual solution with costs, rank and crowding distance
 @dataclass(slots=True)
 class Individual:
     solution: list[int] | None = None
@@ -18,6 +19,7 @@ class Individual:
 
 
 class NSGA2(BaseAlgorithm):
+    # creates initial population, evaluates costs and assigns ranks and crowding distances
     def create_population(self):
         solutions = [self.create_solution() for _ in range(self.pop_size)]
 
@@ -28,19 +30,23 @@ class NSGA2(BaseAlgorithm):
 
         return self.assign_rank_and_distance(population)
 
+    # calculates crowding distance for each individual in a front to maintain diversity
     def calculate_crowding_distance(self, front, population):
         distances = {index: 0.0 for index in front}
 
+        # assign infinite distance if front has two or fewer individuals
         if len(front) <= 2:
             for index in front:
                 distances[index] = float("inf")
             return distances
 
+        # calculate crowding distance for each objective
         for obj_attr in ["opening_cost", "customer_cost"]:
             sorted_front = sorted(
                 front, key=lambda idx: getattr(population[idx], obj_attr)
             )
 
+            # boundary points get infinite distance
             distances[sorted_front[0]] = float("inf")
             distances[sorted_front[-1]] = float("inf")
 
@@ -50,6 +56,7 @@ class NSGA2(BaseAlgorithm):
 
             if val_range == 0:
                 continue
+            # add normalized distance to neighboring solutions
             for k in range(1, len(sorted_front) - 1):
                 prev_val = getattr(population[sorted_front[k - 1]], obj_attr)
                 next_val = getattr(population[sorted_front[k + 1]], obj_attr)
@@ -57,6 +64,7 @@ class NSGA2(BaseAlgorithm):
 
         return distances
 
+    # performs fast non-dominated sorting and returns list of fronts
     def non_dominated_sort(self, population):
         P = population
         # initialize a list to hold the solutions dominated by a given solution
@@ -65,6 +73,7 @@ class NSGA2(BaseAlgorithm):
         n = [0] * len(P)
         fronts = [[]]
 
+        # find domination relationships between all pairs of individuals
         for i in range(len(P)):
             for j in range(i + 1, len(P)):
                 if (
@@ -86,8 +95,10 @@ class NSGA2(BaseAlgorithm):
                     S[j].append(i)
                     n[i] += 1
 
+        # first front contains all non-dominated individuals
         fronts[0] = [index for index, value in enumerate(n) if value == 0]
 
+        # iteratively build subsequent fronts by decrementing domination counts
         current_front_index = 0
         while fronts[current_front_index]:
             next_front = []
@@ -103,6 +114,7 @@ class NSGA2(BaseAlgorithm):
 
         return fronts
 
+    # sorts population into non-dominated fronts and assigns rank and crowding distance
     def assign_rank_and_distance(self, population):
         fronts = self.non_dominated_sort(population)
         for front_index, front in enumerate(fronts):
@@ -112,9 +124,11 @@ class NSGA2(BaseAlgorithm):
                 population[index].crowding_distance = distances[index]
         return population
 
+    # generates offspring, combines with parents and selects best individuals using elitism
     def create_new_population(self, parent_population):
         new_population = []
         child_population = self.create_children(parent_population)
+        # combine parents and offspring into 2N population
         population = parent_population + child_population
         fronts = self.non_dominated_sort(population)
 
@@ -124,6 +138,7 @@ class NSGA2(BaseAlgorithm):
                 population[index].rank = front_index
                 population[index].crowding_distance = distances[index]
 
+            # if current front cannot fit completely, sort by crowding distance and pick most diverse
             if len(front) + len(new_population) > self.pop_size:
                 sorted_front = sorted(
                     front, key=lambda idx: distances[idx], reverse=True
@@ -132,6 +147,7 @@ class NSGA2(BaseAlgorithm):
                 for index in sorted_front[:remaining]:
                     new_population.append(population[index])
                 break
+            # otherwise add all individuals from the front
             else:
                 for index in front:
                     new_population.append(population[index])
@@ -140,42 +156,48 @@ class NSGA2(BaseAlgorithm):
 
         return new_population
 
+    # selects individual using tournament selection based on rank and crowding distance
     def tournament_selection(self, population):
         candidates = random.sample(population, self.tournament_size)
         return min(candidates, key=lambda ind: (ind.rank, -ind.crowding_distance))
 
+    # creates offspring population through selection, crossover, mutation and repair
     def create_children(self, parent_population):
         children_cost_list = []
         children = []
         while len(children) < self.pop_size:
+            # select two parents using tournament selection
             parent1 = self.tournament_selection(parent_population)
             parent2 = self.tournament_selection(parent_population)
 
             parent_solution1 = parent1.solution
             parent_solution2 = parent2.solution
 
+            # apply crossover based on crossover rate
             if random.random() <= self.crossover_rate:
                 child1, child2 = self.crossover(parent_solution1, parent_solution2)
             else:
                 child1 = parent_solution1.copy()
                 child2 = parent_solution2.copy()
 
+            # mutate and repair both children
             child1 = self.mutation(child1)
             child2 = self.mutation(child2)
             child1 = self.feasibility_repair(child1)
             child2 = self.feasibility_repair(child2)
 
-
             children.append(child1)
             if len(children) < self.pop_size:
                 children.append(child2)
 
+        # evaluate costs and wrap into individual objects
         for child in children:
             opening_cost, customer_cost = self.evaluate_solution(child)
             children_cost_list.append(Individual(child, opening_cost, customer_cost))
 
         return children_cost_list
 
+    # runs the NSGA-II algorithm for the given number of generations
     def run(self):
         population = self.create_population()
         for _ in range(0,self.generations):
@@ -183,6 +205,7 @@ class NSGA2(BaseAlgorithm):
         return population
 
 
+# loads problem instance, runs NSGA-II and plots the pareto front
 def main():
     path = "./data/cap61.txt"
     instance = Problem.from_file(path)
@@ -196,6 +219,7 @@ def main():
 
     final_population = algorithm.run()
 
+    # extract non-dominated solutions (rank 0)
     front = sorted({
         (ind.opening_cost, ind.customer_cost)
         for ind in final_population
@@ -203,6 +227,7 @@ def main():
     })
     opening, customer = zip(*front)
 
+    # plot Pareto front
     plt.plot(opening, customer, "o-")
     plt.xlabel("Facility opening cost")
     plt.ylabel("Customer allocation cost")
