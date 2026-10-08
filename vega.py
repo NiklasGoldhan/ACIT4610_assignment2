@@ -11,6 +11,10 @@ class VEGA(BaseAlgorithm):
         return self.create_population()
 
     def vega_selection(self, population):
+        '''
+        Splits the population, selects individuals based on opening cost and customer cost separately, 
+        then combines them into a mating pool.
+        '''
         shuffled_population = population.copy()
         random.shuffle(shuffled_population)
 
@@ -51,6 +55,9 @@ class VEGA(BaseAlgorithm):
         return mating_pool
 
     def reproduce(self, mating_pool):
+        '''
+        Performs crossover and mutation on the mating pool to create offspring.
+        '''
         offspring = []
 
         for i in range(0, len(mating_pool), 2):
@@ -78,10 +85,17 @@ class VEGA(BaseAlgorithm):
         return offspring
 
     def dominates(self, a, b):
-        """f1 is a[1], f2 is a[2]. Check Pareto dominance directly without slicing."""
+        """
+        Checks if individual a dominates individual b.
+        f1 is a[1], f2 is a[2]. Check Pareto dominance directly without slicing.
+        Taken from lab 3
+        """
         return (a[1] <= b[1] and a[2] <= b[2]) and (a[1] < b[1] or a[2] < b[2])
 
     def nondominated_solutions(self, population):
+        '''
+        Returns the list of nondominated solutions from the population.
+        '''
         nondominated = []
 
         for i, individual in enumerate(population):
@@ -98,6 +112,9 @@ class VEGA(BaseAlgorithm):
         return nondominated
 
     def unique_solutions(self, population):
+        '''
+        Returns the list of unique solutions from the population.
+        '''
         unique = {}
 
         for individual in population:
