@@ -46,7 +46,7 @@ INSTANCES = [
 
 PLOT_INSTANCES = ["cap61", "cap62", "cap101", "cap102", "cap121", "cap122"]
 
-BASE_SEED = None
+BASE_SEED = 42
 HV_REF = (1.1, 1.1)
 
 # Run on available CPU cores - 1 or 1 if none are detected
@@ -257,7 +257,7 @@ def plot_pareto(cell, out_dir=PLOT_DIR):
 
     ax.set_xlabel("Facility opening cost (f1)")
     ax.set_ylabel("Customer allocation cost (f2)")
-    ax.set_title(f"Pareto front – {cell['instance']} ({cell['config']})")
+    ax.set_title(f"Pareto front - {cell['instance']} ({cell['config']})")
     ax.legend()
     ax.grid(True, alpha=0.3)
 
