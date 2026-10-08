@@ -239,6 +239,7 @@ def print_cell_summary(cell):
         print(f"  time   mean={time_mean:.3f}s")
 
 
+# -----AI Generated start-----
 def plot_pareto(cell, out_dir=PLOT_DIR):
     """Scatter both algorithms averaged fronts on the same axes."""
     out_dir.mkdir(exist_ok=True)
@@ -266,6 +267,8 @@ def plot_pareto(cell, out_dir=PLOT_DIR):
     fig.savefig(path, dpi=150)
     plt.close(fig)
     print(f"Saved plot: {path}")
+# -----AI Generated end-----
+
 
 
 # -----AI Generated start-----
